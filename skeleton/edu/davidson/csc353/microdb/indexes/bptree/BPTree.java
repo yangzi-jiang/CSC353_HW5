@@ -32,11 +32,13 @@ public class BPTree<K extends Comparable<K>, V> {
 	 * @param value The value associated with the key.
 	 */
 	public void insert(K key, V value) {
-		System.out.println("Inserting " + key);
-
+		//System.out.println("Inserting " + key);s
 		BPNode<K,V> insertPlace = find(nodeFactory.getNode(rootNumber), key);
-
-		// TODO ...
+		insertPlace.insertValue(key, value);
+		if(insertPlace.keys.size() > (BPNode.SIZE-1)){
+			SplitResult<K,V> result = insertPlace.splitLeaf(nodeFactory);
+			insertOnParent(result.left, result.dividerKey, result.right);
+		}
 		
 		// Need to call insertOnParent after performing a leaf node split
 	}
@@ -48,9 +50,26 @@ public class BPTree<K extends Comparable<K>, V> {
 	 * @param key Divider key (according to the description in {@link SplitResult}.
 	 * @param right Right B+Tree node after a split has been made.
 	 */
-	private void insertOnParent(BPNode<K,V> left, K key, BPNode<K,V> right) {
+	void insertOnParent(BPNode<K,V> left, K key, BPNode<K,V> right) {
 		// TODO ...
-					
+		if(left.number == rootNumber){
+			BPNode<K,V> newRoot = nodeFactory.create(false);//create internal node
+			newRoot.children.add(0, left.number);
+			BPNode<K,V> tmp = nodeFactory.getNode(left.number);
+			tmp.parent = newRoot.number;
+			newRoot.insertChild(key, right.number, nodeFactory);
+			rootNumber = newRoot.number;
+			return;
+		}
+		
+		else{
+			BPNode<K,V> parent = nodeFactory.getNode(left.parent);
+			parent.insertChild(key, right.number, nodeFactory);
+			if(parent.keys.size() > (BPNode.SIZE-1)){//check size
+				SplitResult<K,V> result = parent.splitInternal(nodeFactory);
+				insertOnParent(result.left, result.dividerKey, result.right);
+			}
+		}
 		// Need to keep calling insertOnParent after performing an internal node split
 	}
 
@@ -62,7 +81,17 @@ public class BPTree<K extends Comparable<K>, V> {
 	 * @return The value associated with the provided key.
 	 */
 	public V get(K key) {
-		// TODO ...
+
+		BPNode<K,V> node = find(nodeFactory.getNode(rootNumber), key);
+		
+		for(int i = 0; i < node.keys.size(); i++){
+			if(equal(node.getKey(i), key)){
+				return node.getValue(i);
+			}
+		}
+		
+		return null;
+		
 	}
 
 	/**

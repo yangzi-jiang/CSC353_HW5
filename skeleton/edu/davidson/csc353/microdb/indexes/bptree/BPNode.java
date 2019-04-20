@@ -169,9 +169,28 @@ public class BPNode<K extends Comparable<K>, V> {
 
 		result.left = this;
 		result.right = nodeFactory.create(true);
-
+		
 		// TODO ...
-
+		int halfSize = (this.values.size()/2);
+		K divider = this.keys.get(halfSize);
+		
+		//right node
+		for(int i = (halfSize); i < this.values.size(); i++){
+			result.right.insertValue(this.keys.get(i), this.values.get(i));	
+		}
+		
+		//left node
+				for(int i = (this.values.size()-1); i >= halfSize; i--){
+					result.left.values.remove(i);
+					result.left.keys.remove(i);
+				}
+		
+		//System.out.println("left: "+result.left);
+		//System.out.println("right: "+result.right);
+		result.dividerKey = divider;
+		result.right.next = next;
+		next = result.right.number; 
+				
 		return result;
 	}
 
@@ -194,7 +213,23 @@ public class BPNode<K extends Comparable<K>, V> {
 		result.right = nodeFactory.create(false);
 
 		// TODO ...
-
+		int halfSize = (this.keys.size()/2);
+		K divider = this.keys.get(halfSize);
+		
+		//right node
+		result.right.children.add(0, this.getChild(halfSize+1));
+		
+		nodeFactory.getNode(result.right.children.get(0)).parent = result.right.number;
+		for(int i = (halfSize+1); i < this.keys.size(); i++){
+			result.right.insertChild(this.keys.get(i), this.getChild(i+1), nodeFactory);
+		}
+		//left node
+		for(int i = (this.values.size()-1); i >= halfSize; i--){
+			result.left.keys.remove(i);
+			result.left.children.remove(i+1);
+		}
+		
+		result.dividerKey = divider;
 		return result;
 	}
 
@@ -251,6 +286,46 @@ public class BPNode<K extends Comparable<K>, V> {
 
 		// TODO: Load from disk (that is, from the buffer), create your own file format
 		//       The getInt() and putInt() functions should be very helpful
+		
+		this.SIZE = buffer.getInt();
+		int leafBoolean = buffer.getInt();
+		if(leafBoolean == 1){
+			this.leaf = true;
+		}
+		else{
+			this.leaf = false;
+		}
+		this.parent = buffer.getInt();
+		int keySize = buffer.getInt();
+		String tmp = "";
+		for(int i = 0; i < keySize; i++){
+			int stringLen = buffer.getInt();
+			for(int j = 0; j < stringLen; j++){
+				tmp+=buffer.getChar();
+			}
+			this.keys.add(loadKey.apply(tmp));
+			tmp = "";
+		}
+		this.number = buffer.getInt();
+		
+		if(this.leaf == true){
+			tmp = "";
+			for(int i = 0; i < keySize; i++){
+				int stringLen = buffer.getInt();
+				for(int j = 0; j < stringLen; j++){
+					tmp+=buffer.getChar();
+				}
+				this.values.add(loadValue.apply(tmp));
+				tmp = "";
+			}
+			this.next = buffer.getInt();
+		}
+		else{
+			for(int i = 0; i < (keySize+1); i++){
+				this.children.add(buffer.getInt());
+			}
+		}
+		
 	}
 
 	/**
@@ -265,5 +340,42 @@ public class BPNode<K extends Comparable<K>, V> {
 		// TODO: Save to disk (that is, to the buffer), create your own file format
 		//       The getInt() and putInt() functions should be very helpful
 		//       To save a string, generate it in memory, then use getBytes() and use the put() function in the buffer.
+		
+		buffer.putInt(SIZE);
+		if(this.leaf == true){
+			buffer.putInt(1);
+		}
+		else{
+			buffer.putInt(0);
+		}
+		buffer.putInt(this.parent);
+		buffer.putInt(this.keys.size());
+		for(int i = 0; i < this.keys.size(); i++){
+			String tmp = keys.get(i).toString();
+			buffer.putInt(tmp.length());
+			for(int j = 0; j < tmp.length(); j++){
+				buffer.putChar(tmp.charAt(j));
+			}
+		}
+		buffer.putInt(this.number);
+		
+		
+		if(this.leaf == true){
+			for(int i = 0; i < this.values.size(); i++){
+				String tmp = values.get(i).toString();
+				buffer.putInt(tmp.length());
+				for(int j = 0; j < tmp.length(); j++){
+					buffer.putChar(tmp.charAt(j));
+				}
+			}
+			buffer.putInt(this.next);
+		}
+		else{
+			for(int i = 0; i < this.children.size(); i++){
+				buffer.putInt(this.children.get(i));
+			}
+		}
+		
+		
 	}
 }
